@@ -2,11 +2,11 @@ namespace Markdown.Tags;
 
 public class CursiveTag : ITag
 {
-    public string MdTag => "_";
+    public string MdTag { get; } = "_";
 
     public string MdClosingTag => MdTag;
 
-    public string HtmlTag => "em";
+    public string HtmlTag { get; } = "em";
 
-    public ITag[] DisallowedChildren => [new StrongTag()];
+    public IReadOnlyCollection<ITag> DisallowedChildren { get; } = new List<ITag> { new StrongTag() };
 }

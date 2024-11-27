@@ -1,12 +1,15 @@
 namespace Markdown.Tags;
 
+/// <summary>
+/// Тег для полужирного текста
+/// </summary>
 public class StrongTag : ITag
 {
-    public string MdTag => "__";
+    public string MdTag { get; } = "__";
 
     public string MdClosingTag => MdTag;
 
-    public string HtmlTag => "strong";
+    public string HtmlTag { get; } = "strong";
 
-    public ITag[] DisallowedChildren => [];
+    public IReadOnlyCollection<ITag> DisallowedChildren { get; } = new List<ITag>();
 }

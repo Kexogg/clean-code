@@ -1,11 +1,13 @@
-﻿namespace Markdown;
+﻿using Markdown.Markdown;
+
+namespace Markdown;
 
 class Program
 {
-    static void Main(string[] args)
+    public static void Main()
     {
         var mdFile = File.ReadAllText("Markdown.md");
-        var md = new Markdown.Md();
+        var md = new Md();
         Console.WriteLine(md.Render(mdFile));
     }
 }

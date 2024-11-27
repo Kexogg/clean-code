@@ -3,13 +3,16 @@ using Markdown.Token;
 
 namespace Markdown.Markdown;
 
+/// <summary>
+/// Конвертер markdown в HTML
+/// </summary>
 public class Md : IMd
 {
+    private readonly ITokenizer tokenizer = new Tokenizer();
+    private readonly IRenderer renderer = new HtmlRenderer();
     public string Render(string md)
     {
-        var tokenizer = new Tokenizer();
         var tokens = tokenizer.Tokenize(md);
-        var renderer = new HtmlRenderer();
-        return renderer.RenderToHtml(tokens);
+        return renderer.Render(tokens);
     }
 }

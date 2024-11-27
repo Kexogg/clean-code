@@ -3,7 +3,7 @@ using Markdown.Markdown;
 
 namespace MarkdownTests;
 
-public class MarkdownTests
+public class MdTests
 {
     private Md md;
 
@@ -16,7 +16,8 @@ public class MarkdownTests
     [Test]
     public void Render_ShouldReturnSimpleText()
     {
-        md.Render("Hello, world!").Should().Be("Hello, world!");
+        const string text = "Hello, world!";
+        md.Render(text).Should().Be(text);
     }
 
     [Test]
@@ -41,7 +42,7 @@ public class MarkdownTests
     [Test]
     public void Render_ShouldReturnImage()
     {
-        md.Render("(Hello, image!)[img]").Should().Be("<img alt=\"Hello, image!\" src=\"img\"/>");
+        md.Render("![Hello, image!](img)").Should().Be("<img alt=\"Hello, image!\" src=\"img\"/>");
     }
 
     [Test]

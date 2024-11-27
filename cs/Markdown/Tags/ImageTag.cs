@@ -1,17 +1,19 @@
 namespace Markdown.Tags;
 
+/// <summary>
+/// Тег для картинки
+/// </summary>
 public class ImageTag : ITag
 {
-    //[alt](src)
-    public string MdTag => "[";
+    public string MdTag { get; } = "![";
 
-    public string MdClosingTag => ")";
+    public string MdClosingTag { get; } = ")";
 
-    public string HtmlTag => "img";
+    public string HtmlTag { get; } = "img";
 
-    public ITag[] DisallowedChildren => [new CursiveTag(), new HeaderTag(), new ImageTag(), new StrongTag()];
+    public IReadOnlyCollection<ITag> DisallowedChildren => new List<ITag>() {new CursiveTag(), new HeaderTag(), new ImageTag(), new StrongTag()};
 
-    public bool SelfClosing => true;
+    public bool SelfClosing { get; } = true;
 
-    public static string GetRenderAttributes(string content) => throw new NotImplementedException();
+    public static string GetHtmlRenderAttributes(string content) => throw new NotImplementedException();
 }

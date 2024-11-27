@@ -1,6 +1,10 @@
 namespace Markdown.Token;
 
+/// <summary>
+/// Интерфейс токена
+/// </summary>
 public interface IToken
 {
-    string Content { get; }
+    string TextContent { get; }
+    List<IToken>? Children { get; }
 }

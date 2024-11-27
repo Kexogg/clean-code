@@ -2,7 +2,15 @@ using Markdown.Token;
 
 namespace Markdown.Renderer;
 
+/// <summary>
+/// Универсальный интерфейс рендерера
+/// </summary>
 public interface IRenderer
 {
-    string RenderToHtml(IEnumerable<IToken> tokens);
+    /// <summary>
+    /// Переводит набор токенов в текст языка разметки
+    /// </summary>
+    /// <param name="tokens">Набор токенов</param>
+    /// <returns>Сгенерированный текст</returns>
+    string Render(IEnumerable<IToken> tokens);
 }
