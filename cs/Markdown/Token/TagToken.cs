@@ -13,5 +13,7 @@ public class TagToken(string content, ITag tag) : IToken
 
     public List<IToken> Children { get; } = new List<IToken>();
 
+    public Dictionary<string, string> Attributes = new Dictionary<string, string>();
+
     public ITag Tag { get; } = tag;
 }
