@@ -1,7 +1,7 @@
 namespace Markdown.Token;
 
 /// <summary>
-/// Текстовый токен
+/// Текстовый токен. Содержит чистый текст
 /// </summary>
 /// <param name="content">Текст</param>
 public class TextToken(string content) : IToken
@@ -9,4 +9,9 @@ public class TextToken(string content) : IToken
     public string TextContent { get; } = content;
 
     public List<IToken>? Children => null;
+    
+    public override string ToString()
+    {
+        return TextContent;
+    }
 }
