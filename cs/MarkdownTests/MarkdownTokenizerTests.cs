@@ -8,33 +8,32 @@ namespace MarkdownTests
     [TestFixture]
     public class MarkdownTokenizerTests
     {
-        private MarkdownTokenizer _tokenizer;
+        private MarkdownTokenizer tokenizer;
 
         [SetUp]
         public void SetUp()
         {
-            _tokenizer = new MarkdownTokenizer();
+            tokenizer = new MarkdownTokenizer();
         }
 
         [TearDown]
         public void TearDown()
         {
-            if (TestContext.CurrentContext.Result.Outcome.Status == TestStatus.Failed)
+            if (TestContext.CurrentContext.Result.Outcome.Status != TestStatus.Failed) return;
+            var i = 0;
+            foreach (var token in tokenizer.GetTokens())
             {
-                foreach (var token in _tokenizer.GetTokens())
-                {
-                    DrawTokenTree(token);
-                }
+                DrawTokenTree(token, $"[{i}]");
+                i++;
             }
-
-            _tokenizer = null;
         }
+
+        //Basic tokenization 
 
         [Test]
         public void Tokenize_ShouldReturnTextToken_ForPlainText()
         {
-            var content = "This is plain text.";
-            var tokens = _tokenizer.Tokenize(content);
+            var tokens = tokenizer.Tokenize("This is plain text.");
 
             tokens.Should().HaveCount(1);
             tokens[0].Should().BeOfType<TextToken>();
@@ -44,8 +43,7 @@ namespace MarkdownTests
         [Test]
         public void Tokenize_ShouldReturnStrongTagToken_ForStrongText()
         {
-            var content = "__strong text__";
-            var tokens = _tokenizer.Tokenize(content);
+            var tokens = tokenizer.Tokenize("__strong text__");
 
             tokens.Should().HaveCount(1);
             tokens[0].Should().BeOfType<TagToken>();
@@ -56,8 +54,7 @@ namespace MarkdownTests
         [Test]
         public void Tokenize_ShouldReturnMixedTokens_ForMixedContent()
         {
-            var content = "This is __strong__ and _cursive_ text.";
-            var tokens = _tokenizer.Tokenize(content);
+            var tokens = tokenizer.Tokenize("This is __strong__ and _cursive_ text.");
 
             tokens.Should().HaveCount(5);
             tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("This is ");
@@ -72,47 +69,206 @@ namespace MarkdownTests
         [Test]
         public void Tokenize_ShouldReturnNestedTokens_ForNestedContent()
         {
-            var content = "__strong _and cursive_ text__";
-            var tokens = _tokenizer.Tokenize(content);
+            var tokens = tokenizer.Tokenize("__strong _and cursive_ text__");
 
             tokens.Should().HaveCount(1);
             tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<StrongTag>();
             tokens[0].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("strong ");
             tokens[0].Children![1].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<CursiveTag>();
-            tokens[0].Children![1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("and cursive");
+            tokens[0].Children![1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should()
+                .Be("and cursive");
             tokens[0].Children![2].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(" text");
         }
 
-        /*[Test]
-        public void Tokenize_ShouldReturnImageTagToken_ForImage()
+        //Escape characters
+
+        [Test]
+        public void Tokenize_ShouldReturnTextToken_ForEscapedTag()
         {
-            var content = "![src](image.jpg)";
-            var tokens = _tokenizer.Tokenize(content);
+            var tokens = tokenizer.Tokenize(@"\_escaped tag\_");
 
             tokens.Should().HaveCount(1);
-            tokens[0].Should().BeOfType<TagToken>();
-            tokens[0].TextContent.Should().Be("image.jpg");
-            ((TagToken)tokens[0]).Tag.Should().BeOfType<ImageTag>();
-        }*/
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("_escaped tag_");
+        }
 
-        private void DrawTokenTree(IToken token, string indent = " - ")
+        [Test]
+        public void Tokenize_ShouldReturnTextToken_ForEscapedEscapeCharacter()
+        {
+            var tokens = tokenizer.Tokenize(@"\\escaped escape character\\");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("\\escaped escape character\\");
+        }
+
+        [Test]
+        public void Tokenize_ShouldNotRemoveEscapeCharacter_WhenItIsNotBeforeTag()
+        {
+            var tokens = tokenizer.Tokenize(@"\not escaped tag\");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(@"\not escaped tag\");
+        }
+
+        //Tag interactions
+
+        [Test]
+        public void Tokenize_ShouldNotReturnStrongTag_InCursiveTag()
+        {
+            var tokens = tokenizer.Tokenize("_cursive __strong__ text_");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<CursiveTag>();
+            tokens[0].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should()
+                .Be("cursive __strong__ text");
+        }
+
+        [Test]
+        public void Tokenize_ShouldReturnCursiveTag_InStrongTag()
+        {
+            var tokens = tokenizer.Tokenize("__strong _cursive_ text__");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<StrongTag>();
+            tokens[0].Children.Should().HaveCount(3);
+            tokens[0].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("strong ");
+            tokens[0].Children![1].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<CursiveTag>();
+            tokens[0].Children![1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("cursive");
+            tokens[0].Children![2].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(" text");
+        }
+
+        [Test]
+        public void Tokenize_ShouldNotReturnTags_InsideWordWithNumbers()
+        {
+            var tokens = tokenizer.Tokenize("word w__1__th numb_3_rs");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("word w__1__th numb_3_rs");
+        }
+
+        [Test]
+        public void Tokenize_ShouldNotReturnTag_ForTagStartingInDifferendWords()
+        {
+            var tokens = tokenizer.Tokenize("cro_ss word t_ag");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("cro_ss word t_ag");
+        }
+
+        [Test]
+        public void Tokenize_ShouldReturnTag_ForTagContainedWithinWord()
+        {
+            var tokens = tokenizer.Tokenize("cro_ss_ word t__a__g");
+
+            tokens.Should().HaveCount(5);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("cro");
+            tokens[1].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<CursiveTag>();
+            tokens[1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("ss");
+            tokens[2].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(" word t");
+            tokens[3].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<StrongTag>();
+            tokens[3].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("a");
+            tokens[4].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("g");
+        }
+
+        [Test]
+        //TODO: newline fix
+        public void Tokenize_ShouldNotReturnTag_ForUnpairedTag_WithinOneLine()
+        {
+            var tokens = tokenizer.Tokenize("__unpaired_ tags\npaired __tag__");
+
+            tokens.Should().HaveCount(2);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("__unpaired_ tags");
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("paired");
+            tokens[1].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<StrongTag>();
+            tokens[1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("tag");
+        }
+
+        [Test]
+        public void Tokenize_ShouldNotReturnTag_ForTagStart_WithoutTrailingNonSpaceCharacter()
+        {
+            var tokens = tokenizer.Tokenize("word_ word_");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("word_ word_");
+        }
+
+
+        [Test]
+        public void Tokenize_ShouldNotReturnTag_ForTagEnd_WithoutLeadingNonSpaceCharacter()
+        {
+            var tokens = tokenizer.Tokenize("_word _word word_");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<CursiveTag>();
+            tokens[0].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("word _word word");
+        }
+
+        [Test]
+        public void Tokenize_ShouldNotReturnTags_ForIntersectingTags()
+        {
+            var tokens = tokenizer.Tokenize("__text with _intersecting__ tags_");
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("__text with _intersecting__ tags_");
+        }
+
+        [Test]
+        public void Tokenize_ShouldNotReturnTag_WithEmptyTagContent()
+        {
+            const string content = "____";
+            var tokens = tokenizer.Tokenize(content);
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("____");
+        }
+
+        //Header
+
+        [Test]
+        public void Tokenize_ShouldCorrectlyTokenize_ForHeaderWithNewLine()
+        {
+            const string content = "#__Header with tag__ and\nnewline";
+            var tokens = tokenizer.Tokenize(content);
+
+            tokens.Should().HaveCount(2);
+            tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<HeaderTag>();
+            tokens[0].Children![0].Should().BeOfType<TagToken>().Which.Children[0].TextContent.Should()
+                .Be("Header with tag");
+            tokens[0].Children![1].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(" and");
+            tokens[1].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("newline");
+        }
+
+        //Image
+
+        [Test]
+        public void Tokenize_ShouldReturnImageTagToken_ForImage()
+        {
+            var tokens = tokenizer.Tokenize("![alt](image.jpg)");
+
+            //TODO: review link storage
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<ImageTag>();
+            tokens[0].Children![0].TextContent.Should().Be("alt");
+            tokens[0].Children![1].TextContent.Should().Be("image.jpg");
+        }
+
+        private static void DrawTokenTree(IToken token, string indent)
         {
             switch (token)
             {
                 case TextToken textToken:
-                    TestContext.Out.WriteLine($"{indent}Text: \"{textToken.TextContent}\"");
+                    TestContext.Out.WriteLine($"{indent} Text: \"{textToken.TextContent}\"");
                     break;
                 case TagToken tagToken:
-                    TestContext.Out.WriteLine($"{indent}Tag: {tagToken.Tag.GetType()} {tagToken.TextContent}");
+                    TestContext.Out.WriteLine($"{indent} Tag: {tagToken.Tag.GetType()} {tagToken.TextContent}");
                     break;
             }
 
-            if (token.Children != null)
+            if (token.Children == null) return;
+            var i = 0;
+            foreach (var child in token.Children)
             {
-                foreach (var child in token.Children)
-                {
-                    DrawTokenTree(child, "  " + indent);
-                }
+                DrawTokenTree(child, $"{indent}[{i}]");
+                i++;
             }
         }
     }
