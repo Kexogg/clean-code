@@ -13,7 +13,7 @@ public interface ITag
     /// <summary>
     /// Закрывающий тег в Markdown 
     /// </summary>
-    string? MdClosingTag => null;
+    string MdClosingTag { get; }
 
     /// <summary>
     /// Тег в HTML, соответсвующий тегу Markdown
