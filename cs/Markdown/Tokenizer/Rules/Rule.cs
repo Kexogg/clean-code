@@ -5,5 +5,6 @@ namespace Markdown.Tokenizer.Rules;
 /// </summary>
 public class Rule : IRule
 {
-    public Func<TagToken, string, bool, List<TagToken>, bool> IsValid { get; init; }
+    public Func<TagToken, string, bool, List<TagToken>, bool>? IsValid { get; init; }
+    public Func<TagToken, string, bool>? IsTag { get; init; }
 }

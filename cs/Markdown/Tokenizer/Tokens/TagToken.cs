@@ -1,4 +1,5 @@
 using Markdown.Tags;
+using Markdown.Tokenizer.Tokens;
 
 namespace Markdown.Tokenizer;
 
@@ -17,7 +18,6 @@ public class TagToken(ITag tag) : IToken
     public int Position { get; set; }
 
     public ITag Tag { get; } = tag;
-
     public override string ToString()
     {
         return $"{Tag.GetType()} {TextContent}";

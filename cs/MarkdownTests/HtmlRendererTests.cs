@@ -2,6 +2,7 @@ using FluentAssertions;
 using Markdown.Renderer;
 using Markdown.Tags;
 using Markdown.Tokenizer;
+using Markdown.Tokenizer.Tokens;
 
 namespace MarkdownTests
 {

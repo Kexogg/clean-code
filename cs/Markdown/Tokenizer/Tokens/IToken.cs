@@ -1,4 +1,4 @@
-namespace Markdown.Tokenizer;
+namespace Markdown.Tokenizer.Tokens;
 
 /// <summary>
 /// Интерфейс токена

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Markdown.Tags;
 using Markdown.Tokenizer;
+using Markdown.Tokenizer.Tokens;
 using NUnit.Framework.Interfaces;
 
 namespace MarkdownTests

@@ -1,6 +1,7 @@
 using Markdown.Extensions;
 using Markdown.Tags;
 using Markdown.Tokenizer.Rules;
+using Markdown.Tokenizer.Tokens;
 
 namespace Markdown.Tokenizer;
 
@@ -54,8 +55,17 @@ public class MarkdownTokenizer : ITokenizer
                     i += tag.MdTag.Length - 1;
                     break;
                 }
-                else if (content.ContainsSubstringOnIndex(tag.MdClosingTag, i))
+                else if (content.ContainsSubstringOnIndex(tag.MdClosingTag, i) && !tag.SelfClosing)
                 {
+                    var tagToken = new TagToken(tag) { Position = i };
+                    if (markdownRules.Rules.TryGetValue(tagToken.Tag.GetType(), out var rule))
+                    {
+                        if (rule.IsTag != null && !rule.IsTag(tagToken, content))
+                        {
+                            continue;
+                        }
+                    }
+
                     tagTokens.Add(new TagToken(tag) { Position = i });
                     i += tag.MdClosingTag.Length - 1;
                     break;
@@ -155,7 +165,6 @@ public class MarkdownTokenizer : ITokenizer
         var invalidTags = new HashSet<TagToken>();
         var tagStack = new Stack<TagToken>();
         var orderedTags = foundTags.OrderBy(t => t.Position).ToList();
-        var tagRules = new MarkdownRules().Rules;
 
         foreach (var currentTag in orderedTags)
         {
@@ -166,12 +175,10 @@ public class MarkdownTokenizer : ITokenizer
 
 
             var tagType = currentTag.Tag.GetType();
-            if (tagRules.TryGetValue(tagType, out var rule))
+            if (markdownRules.Rules.TryGetValue(tagType, out var rule))
             {
-                if (!rule.IsValid(currentTag, content, isClosingTag, orderedTags))
+                if (rule.IsValid != null && !rule.IsValid(currentTag, content, isClosingTag, orderedTags))
                 {
-                    Console.WriteLine(
-                        $"Invalid tag: {currentTag.Tag.GetType()} at {currentTag.Position}. Reason: rule");
                     invalidTags.Add(currentTag);
                     continue;
                 }
@@ -183,7 +190,7 @@ public class MarkdownTokenizer : ITokenizer
                         .Any(t => t.GetType() == currentTag.Tag.GetType()))
                 {
                     Console.WriteLine(
-                        $"Invalid tag: {currentTag.Tag.GetType()} at {currentTag.Position}. Reason: disallowed by parent");
+                        $"Invalid tag: {currentTag.Tag.GetType()} at {currentTag.Position}. Reason: disallowed by parent ({tagStack.Peek().Tag.GetType()})");
                     invalidTags.Add(currentTag);
                     continue;
                 }

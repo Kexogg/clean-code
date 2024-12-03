@@ -10,6 +10,10 @@ public class MarkdownRules
 {
     public Dictionary<Type, Rule> Rules = new()
     {
+        [typeof(HeaderTag)] = new Rule
+            {
+                IsTag = (tagToken, content) => content[..tagToken.Position].LastIndexOf('#') > content[..tagToken.Position].LastIndexOf('\n'),
+            },
         [typeof(CursiveTag)] = new Rule
         {
             IsValid = (tagToken, content, isClosingTag, orderedTags) =>
