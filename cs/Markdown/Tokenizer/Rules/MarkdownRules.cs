@@ -79,7 +79,7 @@ public class MarkdownRules
         if (tagEnd + 1 == content.Length || char.IsWhiteSpace(content[tagEnd + 1]))
             return false;
         //previous symbol
-        var previousTag = orderedTags.FirstOrDefault(t => t.Position + t.Tag.MdTag.Length == tag.Position);
+        var previousTag = orderedTags.LastOrDefault(t => t.Position < tag.Position);
         //TODO: fix edge case
         if (tag.Position == 0 || char.IsWhiteSpace(content[tag.Position - 1]) ||
             previousTag?.Position + previousTag?.Tag.MdTag.Length == tag.Position)
@@ -88,7 +88,7 @@ public class MarkdownRules
 
         var found = FindInAdjacentWord(tag, content, (i, s) => s.ContainsSubstringOnIndex(isClosing ? tag.Tag.MdClosingTag : tag.Tag.MdTag, i));
         if (!found)
-            Console.WriteLine($"Invalid tag: {tag.Tag.MdTag.GetType()} at {tag.Position} (tag border in word)");
+            Console.WriteLine($"Invalid tag: {tag.Tag.GetType()} at {tag.Position} (tag border in word)");
         return !found;
     }
 
