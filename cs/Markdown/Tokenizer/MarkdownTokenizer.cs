@@ -7,16 +7,14 @@ using Markdown.Tokenizer.Tokens;
 namespace Markdown.Tokenizer;
 
 /// <summary>
-/// Токенайзер - переводит строку Markdown в токены. Учитывает правила
+///     Токенайзер - переводит строку Markdown в токены. Учитывает правила
 /// </summary>
-/// <seealso cref="markdownRules"/>
+/// <seealso cref="markdownRules" />
 public class MarkdownTokenizer : ITokenizer
 {
-    private readonly List<IToken> tokens = new List<IToken>();
+    private readonly MarkdownRules markdownRules = new();
 
-    private readonly MarkdownRules markdownRules = new Rules.MarkdownRules();
-
-    private readonly List<ITag> tags = new List<ITag>()
+    private readonly List<ITag> tags = new()
     {
         new StrongTag(),
         new CursiveTag(),
@@ -25,45 +23,27 @@ public class MarkdownTokenizer : ITokenizer
         new NewLineTag()
     };
 
+    private readonly List<IToken> tokens = new();
+
     public List<IToken> Tokenize(string content)
     {
         var escapePositions = GetEscapePositions(content);
+        var tagLines = IdentifyTags(content);
 
-        var foundTags = IdentifyTags(content);
-        
+        foreach (var tagLine in tagLines) RemoveInvalidTags(tagLine, content);
 
-        foreach (var line in foundTags)
-        {
-            //Console.WriteLine($"Found tags: {string.Join(", ", line.Select(x => $"{x.Tag.GetType()} at {x.Position}"))}");
-            RemoveIllegalTags(line, content);
-            //Console.WriteLine($"Clean tags: {string.Join(", ", line.Select(x => $"{x.Tag.GetType()} at {x.Position}"))}");
-        }
+        content = RemoveEscapeCharacters(content, escapePositions, tagLines);
 
-        content = EscapeContent(content, escapePositions, foundTags);
+        var cleanTags = tagLines.SelectMany(t => t).ToList();
+        var tokenTree = BuildTokenTree(cleanTags, content);
 
-        var cleanTags = foundTags.SelectMany(x => x).ToList();
-        var tree = BuildTree(cleanTags, content);
-
-        tokens.AddRange(tree);
-
-        return tree;
+        tokens.AddRange(tokenTree);
+        return tokenTree;
     }
 
-    private static string EscapeContent(string content, List<int> escapePositions, List<List<TagToken>> foundTags)
+    public List<IToken> GetTokens()
     {
-        var sb = new StringBuilder(content);
-        foreach (var pos in escapePositions.OrderByDescending(p => p))
-        {
-            sb.Remove(pos, 1);
-        }
-        content = sb.ToString();
-
-        foreach (var tagToken in foundTags.SelectMany(tagTokens => tagTokens))
-        {
-            tagToken.Position -= escapePositions.Count(pos => pos < tagToken.Position);
-        }
-
-        return content;
+        return tokens.ToList();
     }
 
     private List<int> GetEscapePositions(string content)
@@ -88,7 +68,6 @@ public class MarkdownTokenizer : ITokenizer
         var lines = new List<List<TagToken>>();
         var tagTokens = new List<TagToken>();
         for (var i = 0; i < content.Length; i++)
-        {
             foreach (var tag in tags)
             {
                 if (content.ContainsSubstringOnIndex(tag.MdTag, i))
@@ -101,34 +80,29 @@ public class MarkdownTokenizer : ITokenizer
                         tagTokens = new List<TagToken>();
                         break;
                     }
-                    
+
                     tagTokens.Add(new TagToken(tag) { Position = i });
                     i += tag.MdTag.Length - 1;
                     break;
                 }
-                else if (!tag.SelfClosing && content.ContainsSubstringOnIndex(tag.MdClosingTag, i))
-                {
-                    var tagToken = new TagToken(tag) { Position = i };
-                    if (markdownRules.Rules.TryGetValue(tagToken.Tag.GetType(), out var rule))
-                    {
-                        if (rule.IsTag != null && !rule.IsTag(tagToken, content))
-                        {
-                            continue;
-                        }
-                    }
 
-                    tagTokens.Add(new TagToken(tag) { Position = i });
-                    i += tag.MdClosingTag.Length - 1;
-                    break;
-                }
+                if (tag.SelfClosing || !content.ContainsSubstringOnIndex(tag.MdClosingTag, i)) continue;
+                var tagToken = new TagToken(tag) { Position = i };
+                if (markdownRules.Rules.TryGetValue(tagToken.Tag.GetType(), out var rule))
+                    if (rule.IsTag != null && !rule.IsTag(tagToken, content))
+                        continue;
+
+                tagTokens.Add(new TagToken(tag) { Position = i });
+                i += tag.MdClosingTag.Length - 1;
+                break;
             }
-        }
+
         lines.Add(tagTokens);
 
         return lines;
     }
 
-    private List<IToken> BuildTree(List<TagToken> tagTokens, string content)
+    private static List<IToken> BuildTokenTree(List<TagToken> tagTokens, string content)
     {
         var tree = new List<IToken>();
         var tagStack = new Stack<TagToken>();
@@ -141,7 +115,6 @@ public class MarkdownTokenizer : ITokenizer
         }
 
         foreach (var tag in tagTokens)
-        {
             //If tag is first in the content
             if (tagStack.Count == 0)
             {
@@ -164,26 +137,24 @@ public class MarkdownTokenizer : ITokenizer
                     var imageToken = new TagToken(imageTag)
                     {
                         Position = currentTag.Position,
-                        Attributes = ImageTag.GetHtmlRenderAttributes(content.Substring(lastTagEnd - 2, tag.Position - lastTagEnd + 2))
+                        Attributes =
+                            ImageTag.GetHtmlRenderAttributes(content.Substring(lastTagEnd - 2,
+                                tag.Position - lastTagEnd + 2))
                     };
                     tree.Add(imageToken);
                     lastTagEnd = tag.Position + tag.Tag.MdClosingTag.Length;
                     continue;
                 }
-                
+
                 var textToken = new TextToken(content.Substring(lastTagEnd,
                     tag.Position - lastTagEnd));
 
 
                 currentTag.Children.Add(textToken);
                 if (tagStack.Count == 0)
-                {
                     tree.Add(currentTag);
-                }
                 else
-                {
                     tagStack.Peek().Children.Add(currentTag);
-                }
 
                 var offset = tag.Tag.SelfClosing ? tag.Tag.MdTag.Length : tag.Tag.MdClosingTag.Length;
                 lastTagEnd = tag.Position + offset;
@@ -199,17 +170,27 @@ public class MarkdownTokenizer : ITokenizer
                 tagStack.Push(tag);
                 lastTagEnd = tag.Position + tag.Tag.MdTag.Length;
             }
-        }
 
         if (lastTagEnd < content.Length)
-        {
             tree.Add(new TextToken(content[lastTagEnd..]));
-        }
-
         return tree;
     }
+    
+    private static string RemoveEscapeCharacters(string content, List<int> escapePositions,
+        List<List<TagToken>> identifiedTags)
+    {
+        var sb = new StringBuilder(content);
+        foreach (var pos in escapePositions.OrderByDescending(p => p)) sb.Remove(pos, 1);
 
-    private void RemoveIllegalTags(List<TagToken> foundTags, string content)
+        content = sb.ToString();
+
+        foreach (var tagToken in identifiedTags.SelectMany(tagTokens => tagTokens))
+            tagToken.Position -= escapePositions.Count(pos => pos < tagToken.Position);
+
+        return content;
+    }
+
+    private void RemoveInvalidTags(List<TagToken> foundTags, string content)
     {
         var invalidTags = new HashSet<TagToken>();
         var tagStack = new Stack<TagToken>();
@@ -218,81 +199,77 @@ public class MarkdownTokenizer : ITokenizer
         foreach (var currentTag in orderedTags)
         {
             var tag = currentTag.Tag;
+            var isClosingTag = IsClosingTag(tag, currentTag.Position, content, tagStack);
 
-            var isClosingTag = !tag.SelfClosing && content.ContainsSubstringOnIndex(tag.MdClosingTag, currentTag.Position)
-                               && tagStack.Any(tagToken => tagToken.Tag.GetType() == currentTag.Tag.GetType());
-
-
-            var tagType = currentTag.Tag.GetType();
-            
-            //Check if tag is valid
-            if (markdownRules.Rules.TryGetValue(tagType, out var rule))
+            if (IsTagInvalid(currentTag, content, isClosingTag, orderedTags))
             {
-                if (rule.IsValid != null && !rule.IsValid(currentTag, content, isClosingTag, orderedTags))
+                invalidTags.Add(currentTag);
+                continue;
+            }
+
+            if (IsOpeningTag(tagStack, currentTag))
+            {
+                if (IsDisallowedChild(tagStack, currentTag))
                 {
                     invalidTags.Add(currentTag);
                     continue;
                 }
-            }
 
-            //If tag is opening
-            if (tagStack.Count == 0 || !currentTag.Tag.Matches(tagStack.Peek().Tag) && !tagStack.Any(t => t.Tag.Matches(currentTag.Tag)))
-            {
-                //Check if tag is disallowed by parent
-                if (tagStack.Count > 0 && tagStack.Peek().Tag.DisallowedChildren
-                        .Any(t => t.GetType() == currentTag.Tag.GetType()))
-                {
-                    Console.WriteLine(
-                        $"Invalid tag: {currentTag.Tag.GetType()} at {currentTag.Position}. Reason: disallowed by parent ({tagStack.Peek().Tag.GetType()})");
-                    invalidTags.Add(currentTag);
-                    continue;
-                }
-
-                if (!currentTag.Tag.SelfClosing) tagStack.Push(currentTag);
+                if (!currentTag.Tag.SelfClosing)
+                    tagStack.Push(currentTag);
             }
-            
-            //If tag is closing
             else
             {
-                var openingTag = tagStack.Pop();
-
-                //check if we have any children open
-                if (!openingTag.Tag.Matches(currentTag.Tag))
-                {
-                    Console.WriteLine($"Tags are intersecting! {openingTag.Tag.GetType()} at {openingTag.Position} and {currentTag.Tag.GetType()} at {currentTag.Position}");
-                    invalidTags.Add(openingTag);
-                    while (tagStack.Count > 0 && !tagStack.Peek().Tag.Matches(currentTag.Tag))
-                    {
-                        invalidTags.Add(tagStack.Pop());
-                    }
-                    invalidTags.Add(currentTag);
-                }
-                var contentLength = currentTag.Position - (openingTag.Position + openingTag.Tag.MdTag.Length);
-                if (contentLength <= 0)
-                {
-                    Console.WriteLine(
-                        $"Invalid tag: {openingTag.Tag.GetType()} at {openingTag.Position}. Reason: empty content");
-                    Console.WriteLine(
-                        $"Invalid tag: {currentTag.Tag.GetType()} at {currentTag.Position}. Reason: empty content");
-                    invalidTags.Add(openingTag);
-                    invalidTags.Add(currentTag);
-                }
+                HandleClosingTag(tagStack, currentTag, invalidTags);
             }
         }
 
         while (tagStack.Count > 0)
-        {
-            Console.WriteLine(
-                $"Invalid tag: {tagStack.Peek().Tag.GetType()} at {tagStack.Peek().Position}. Reason: no closing tag");
             invalidTags.Add(tagStack.Pop());
-        }
 
         foundTags.RemoveAll(t => invalidTags.Contains(t));
     }
 
-
-    public List<IToken> GetTokens()
+    private static bool IsClosingTag(ITag tag, int position, string content, Stack<TagToken> tagStack)
     {
-        return tokens.ToList();
+        return !tag.SelfClosing && content.ContainsSubstringOnIndex(tag.MdClosingTag, position)
+                                && tagStack.Any(tagToken => tagToken.Tag.GetType() == tag.GetType());
+    }
+
+    private bool IsTagInvalid(TagToken tagToken, string content, bool isClosingTag, List<TagToken> orderedTags)
+    {
+        var tagType = tagToken.Tag.GetType();
+        if (!markdownRules.Rules.TryGetValue(tagType, out var rule)) return false;
+        return rule.IsValid != null && !rule.IsValid(tagToken, content, isClosingTag, orderedTags);
+    }
+
+    private static bool IsOpeningTag(Stack<TagToken> tagStack, TagToken currentTag)
+    {
+        return tagStack.Count == 0 || (!currentTag.Tag.Matches(tagStack.Peek().Tag) &&
+                                       !tagStack.Any(t => t.Tag.Matches(currentTag.Tag)));
+    }
+
+    private static bool IsDisallowedChild(Stack<TagToken> tagStack, TagToken currentTag)
+    {
+        return tagStack.Count > 0 && tagStack.Peek().Tag.DisallowedChildren
+            .Any(t => t.GetType() == currentTag.Tag.GetType());
+    }
+
+    private static void HandleClosingTag(Stack<TagToken> tagStack, TagToken currentTag, HashSet<TagToken> invalidTags)
+    {
+        var openingTag = tagStack.Pop();
+
+        if (!openingTag.Tag.Matches(currentTag.Tag))
+        {
+            invalidTags.Add(openingTag);
+            while (tagStack.Count > 0 && !tagStack.Peek().Tag.Matches(currentTag.Tag)) invalidTags.Add(tagStack.Pop());
+
+            invalidTags.Add(currentTag);
+        }
+
+        var contentLength = currentTag.Position - (openingTag.Position + openingTag.Tag.MdTag.Length);
+        if (contentLength > 0) return;
+        invalidTags.Add(openingTag);
+        invalidTags.Add(currentTag);
     }
 }
