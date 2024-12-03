@@ -91,6 +91,16 @@ public class MarkdownRules
             previousTag?.Position + previousTag?.Tag.MdTag.Length == tag.Position)
             return false;
 
+        //escape at the beginning of the word
+        for (var i = tag.Position - 1; i >= 0; i--)
+        {
+            if (content.IsEscaped(i))
+                continue;
+            if (i == 0 || char.IsWhiteSpace(content[i - 1]))
+                return false;
+            if (char.IsLetter(content[i - 1]))
+                break;
+        }
 
         var found = FindInAdjacentWord(tag, content,
             (i, s) => s.ContainsSubstringOnIndex(isClosing ? tag.Tag.MdClosingTag : tag.Tag.MdTag, i));

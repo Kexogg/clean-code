@@ -94,12 +94,14 @@ namespace MarkdownTests
         }
 
         [Test]
-        public void Tokenize_ShouldReturnTextToken_ForEscapedEscapeCharacter()
+        public void Tokenize_ShouldReturnTagToken_ForEscapedEscapeCharacter()
         {
-            var tokens = tokenizer.Tokenize(@"\\escaped escape character\\");
+            var tokens = tokenizer.Tokenize(@"\\_escaped escape character_");
 
-            tokens.Should().HaveCount(1);
-            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(@"\escaped escape character\");
+            tokens.Should().HaveCount(2);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(@"\");
+            tokens[1].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<CursiveTag>();
+            tokens[1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("escaped escape character");
         }
 
         [Test]

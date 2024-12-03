@@ -7,7 +7,7 @@ using Markdown.Tokenizer.Tokens;
 namespace Markdown.Tokenizer;
 
 /// <summary>
-///     Токенайзер - переводит строку Markdown в токены. Учитывает правила
+/// Токенайзер - переводит строку Markdown в токены. Учитывает правила
 /// </summary>
 /// <seealso cref="markdownRules" />
 public class MarkdownTokenizer : ITokenizer
@@ -54,12 +54,12 @@ public class MarkdownTokenizer : ITokenizer
             foreach (var tag in tags)
             {
                 var tagToken = new TagToken(tag) { Position = i };
-                
+
                 if (markdownRules.Rules.TryGetValue(tagToken.Tag.GetType(), out var rule))
                     if (rule.IsTag != null && !rule.IsTag(tagToken, content))
                         continue;
-                
-                if (content.ContainsSubstringOnIndex(tag.MdTag, i))
+
+                if (content.ContainsSubstringOnIndex(tag.MdTag, i) && !content.IsEscaped(i))
                 {
                     if (tag is NewLineTag)
                     {
@@ -69,13 +69,13 @@ public class MarkdownTokenizer : ITokenizer
                         tagTokens = new List<TagToken>();
                         break;
                     }
-                    
+
                     tagTokens.Add(tagToken);
                     i += tag.MdTag.Length - 1;
                     break;
                 }
 
-                if (tag.SelfClosing || !content.ContainsSubstringOnIndex(tag.MdClosingTag, i)) continue;
+                if (tag.SelfClosing || !content.ContainsSubstringOnIndex(tag.MdClosingTag, i) || content.IsEscaped(i)) continue;
                 tagTokens.Add(tagToken);
                 i += tag.MdClosingTag.Length - 1;
                 break;
