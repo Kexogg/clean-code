@@ -1,3 +1,4 @@
+using System.Text;
 using Markdown.Extensions;
 using Markdown.Tags;
 using Markdown.Tokenizer.Rules;
@@ -26,23 +27,60 @@ public class MarkdownTokenizer : ITokenizer
 
     public List<IToken> Tokenize(string content)
     {
+        var escapePositions = GetEscapePositions(content);
+
         var foundTags = IdentifyTags(content);
-        Console.WriteLine(content);
         
 
         foreach (var line in foundTags)
         {
-            Console.WriteLine($"Found tags: {string.Join(", ", line.Select(x => $"{x.Tag.GetType()} at {x.Position}"))}");
+            //Console.WriteLine($"Found tags: {string.Join(", ", line.Select(x => $"{x.Tag.GetType()} at {x.Position}"))}");
             RemoveIllegalTags(line, content);
-            Console.WriteLine($"Clean tags: {string.Join(", ", line.Select(x => $"{x.Tag.GetType()} at {x.Position}"))}");
+            //Console.WriteLine($"Clean tags: {string.Join(", ", line.Select(x => $"{x.Tag.GetType()} at {x.Position}"))}");
         }
-        
+
+        content = EscapeContent(content, escapePositions, foundTags);
+
         var cleanTags = foundTags.SelectMany(x => x).ToList();
         var tree = BuildTree(cleanTags, content);
 
         tokens.AddRange(tree);
 
         return tree;
+    }
+
+    private static string EscapeContent(string content, List<int> escapePositions, List<List<TagToken>> foundTags)
+    {
+        var sb = new StringBuilder(content);
+        foreach (var pos in escapePositions.OrderByDescending(p => p))
+        {
+            sb.Remove(pos, 1);
+        }
+        content = sb.ToString();
+
+        foreach (var tagToken in foundTags.SelectMany(tagTokens => tagTokens))
+        {
+            tagToken.Position -= escapePositions.Count(pos => pos < tagToken.Position);
+        }
+
+        return content;
+    }
+
+    private List<int> GetEscapePositions(string content)
+    {
+        var escapePositions = new List<int>();
+
+        for (var i = 0; i < content.Length; i++)
+        {
+            if (content[i] != '\\') continue;
+            if (i + 1 >= content.Length || (content[i + 1] != '\\' && !tags.Any(tag =>
+                    content.ContainsSubstringOnIndex(tag.MdTag, i + 1) ||
+                    (!tag.SelfClosing && content.ContainsSubstringOnIndex(tag.MdClosingTag, i + 1))))) continue;
+            escapePositions.Add(i);
+            i++;
+        }
+
+        return escapePositions;
     }
 
     private List<List<TagToken>> IdentifyTags(string content)
@@ -104,17 +142,8 @@ public class MarkdownTokenizer : ITokenizer
 
         foreach (var tag in tagTokens)
         {
-
-            //if tag is escaped
-            if (content.IsEscaped(tag.Position))
-            {
-                //TODO: remove escape character
-
-                continue;
-            }
-
             //If tag is first in the content
-            else if (tagStack.Count == 0)
+            if (tagStack.Count == 0)
             {
                 if (tag.Position > 0)
                 {
@@ -130,7 +159,6 @@ public class MarkdownTokenizer : ITokenizer
             {
                 var currentTag = tagStack.Pop();
                 //handle image
-                //TODO: move to rules
                 if (currentTag.Tag is ImageTag imageTag)
                 {
                     var imageToken = new TagToken(imageTag)
@@ -175,9 +203,8 @@ public class MarkdownTokenizer : ITokenizer
 
         if (lastTagEnd < content.Length)
         {
-            tree.Add(new TextToken(content.Substring(lastTagEnd)));
+            tree.Add(new TextToken(content[lastTagEnd..]));
         }
-
 
         return tree;
     }

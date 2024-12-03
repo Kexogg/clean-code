@@ -99,7 +99,7 @@ namespace MarkdownTests
             var tokens = tokenizer.Tokenize(@"\\escaped escape character\\");
 
             tokens.Should().HaveCount(1);
-            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("\\escaped escape character\\");
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(@"\escaped escape character\");
         }
 
         [Test]
