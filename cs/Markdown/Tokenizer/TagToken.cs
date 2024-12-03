@@ -1,6 +1,6 @@
 using Markdown.Tags;
 
-namespace Markdown.Token;
+namespace Markdown.Tokenizer;
 
 /// <summary>
 /// Токен тега
@@ -14,10 +14,12 @@ public class TagToken(ITag tag) : IToken
 
     public Dictionary<string, string> Attributes = new Dictionary<string, string>();
 
+    public int Position { get; set; }
+
     public ITag Tag { get; } = tag;
 
     public override string ToString()
     {
-        return $"{Tag.MdTag} {TextContent}";
+        return $"{Tag.GetType()} {TextContent}";
     }
 }

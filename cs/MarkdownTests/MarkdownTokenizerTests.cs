@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Markdown.Token;
 using Markdown.Tags;
+using Markdown.Tokenizer;
 using NUnit.Framework.Interfaces;
 
 namespace MarkdownTests
@@ -21,6 +21,7 @@ namespace MarkdownTests
         {
             if (TestContext.CurrentContext.Result.Outcome.Status != TestStatus.Failed) return;
             var i = 0;
+            Console.WriteLine("Got token tree:");
             foreach (var token in tokenizer.GetTokens())
             {
                 DrawTokenTree(token, $"[{i}]");

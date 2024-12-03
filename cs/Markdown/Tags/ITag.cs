@@ -38,5 +38,5 @@ public interface ITag
     /// <returns>Строка с атрибутами для вставки в тег</returns>
     static string? GetHtmlRenderAttributes(string content) => null;
 
-    //Добавить какой-то метод для валидации?
+    bool Matches(ITag tag) => this.GetType() == tag.GetType();
 }

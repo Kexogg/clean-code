@@ -1,4 +1,4 @@
-namespace Markdown.Token;
+namespace Markdown.Tokenizer;
 
 /// <summary>
 /// Интерфейс токенайзера - переводчика строки в токены

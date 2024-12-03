@@ -1,4 +1,4 @@
-namespace Markdown.Token;
+namespace Markdown.Tokenizer;
 
 /// <summary>
 /// Текстовый токен. Содержит чистый текст

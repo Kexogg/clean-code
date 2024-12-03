@@ -1,5 +1,5 @@
 using Markdown.Renderer;
-using Markdown.Token;
+using Markdown.Tokenizer;
 
 namespace Markdown.Markdown;
 
