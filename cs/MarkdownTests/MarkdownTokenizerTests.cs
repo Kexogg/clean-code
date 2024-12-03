@@ -177,11 +177,12 @@ namespace MarkdownTests
         {
             var tokens = tokenizer.Tokenize("__unpaired_ tags\npaired __tag__");
 
-            tokens.Should().HaveCount(3);
+            tokens.Should().HaveCount(4);
             tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("__unpaired_ tags");
-            tokens[1].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("paired ");
-            tokens[2].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<StrongTag>();
-            tokens[2].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("tag");
+            tokens[1].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<NewLineTag>();
+            tokens[2].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("paired ");
+            tokens[3].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<StrongTag>();
+            tokens[3].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("tag");
         }
 
         [Test]

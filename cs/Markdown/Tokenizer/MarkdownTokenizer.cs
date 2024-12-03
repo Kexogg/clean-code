@@ -118,14 +118,33 @@ public class MarkdownTokenizer : ITokenizer
             //If tag is first in the content
             if (tagStack.Count == 0)
             {
-                if (tag.Position > 0)
+                if (tag.Position > lastTagEnd)
                 {
                     var textToken = new TextToken(content.Substring(lastTagEnd, tag.Position - lastTagEnd));
                     tree.Add(textToken);
                 }
 
                 lastTagEnd = tag.Position + tag.Tag.MdTag.Length;
-                if (!tag.Tag.SelfClosing) tagStack.Push(tag);
+
+                if (tag.Tag.SelfClosing)
+                {
+                    tree.Add(tag);
+                }
+                else
+                {
+                    tagStack.Push(tag);
+                }
+            }
+            //If tag is self-closing
+            else if (tag.Tag.SelfClosing)
+            {
+                if (tag.Position > lastTagEnd)
+                {
+                    var textToken = new TextToken(content.Substring(lastTagEnd, tag.Position - lastTagEnd));
+                    tagStack.Peek().Children.Add(textToken);
+                }
+                tagStack.Peek().Children.Add(tag);
+                lastTagEnd = tag.Position + tag.Tag.MdTag.Length;
             }
             //If tag is closing
             else if (tagStack.Peek().Tag.GetType() == tag.Tag.GetType())
