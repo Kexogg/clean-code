@@ -12,7 +12,9 @@ public class MarkdownRules
     {
         [typeof(HeaderTag)] = new Rule
             {
-                IsTag = (tagToken, content) => content[..tagToken.Position].LastIndexOf('#') > content[..tagToken.Position].LastIndexOf('\n'),
+                IsTag = (tagToken, content) => 
+                    (content.ContainsSubstringOnIndex(tagToken.Tag.MdClosingTag, tagToken.Position) && content[..tagToken.Position].LastIndexOf('#') > content[..tagToken.Position].LastIndexOf('\n')) ||
+                    (content.ContainsSubstringOnIndex(tagToken.Tag.MdTag, tagToken.Position) && (tagToken.Position == 0 || content[tagToken.Position - 1] == '\n')),
             },
         [typeof(CursiveTag)] = new Rule
         {
@@ -20,7 +22,7 @@ public class MarkdownRules
             {
                 return !IsTagInWordWithDigits(tagToken, content) &&
                        !IsStartOrEndWhitespace(tagToken, content, isClosingTag) &&
-                       !IsEmptyContent(tagToken, content, orderedTags) &&
+                       !IsEmptyContent(tagToken, orderedTags) &&
                        !IsTagBorderInWord(tagToken, content, orderedTags);
             }
         },
@@ -30,13 +32,13 @@ public class MarkdownRules
             {
                 return !IsTagInWordWithDigits(tagToken, content) &&
                        !IsStartOrEndWhitespace(tagToken, content, isClosingTag) &&
-                       !IsEmptyContent(tagToken, content, orderedTags) &&
+                       !IsEmptyContent(tagToken, orderedTags) &&
                        !IsTagBorderInWord(tagToken, content, orderedTags);
             }
         },
     };
 
-    private static bool IsEmptyContent(TagToken openingTag, string content, List<TagToken> orderedTags)
+    private static bool IsEmptyContent(TagToken openingTag, List<TagToken> orderedTags)
     {
         var tagIndex = orderedTags.IndexOf(openingTag);
         if (tagIndex + 1 < orderedTags.Count)

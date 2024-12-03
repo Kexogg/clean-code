@@ -70,29 +70,30 @@ public class MarkdownTokenizer : ITokenizer
         for (var i = 0; i < content.Length; i++)
             foreach (var tag in tags)
             {
+                var tagToken = new TagToken(tag) { Position = i };
+                
+                if (markdownRules.Rules.TryGetValue(tagToken.Tag.GetType(), out var rule))
+                    if (rule.IsTag != null && !rule.IsTag(tagToken, content))
+                        continue;
+                
                 if (content.ContainsSubstringOnIndex(tag.MdTag, i))
                 {
                     if (tag is NewLineTag)
                     {
                         if (tagTokens.FirstOrDefault()?.Tag is not HeaderTag)
-                            tagTokens.Add(new TagToken(tag) { Position = i });
+                            tagTokens.Add(tagToken);
                         lines.Add(tagTokens);
                         tagTokens = new List<TagToken>();
                         break;
                     }
-
-                    tagTokens.Add(new TagToken(tag) { Position = i });
+                    
+                    tagTokens.Add(tagToken);
                     i += tag.MdTag.Length - 1;
                     break;
                 }
 
                 if (tag.SelfClosing || !content.ContainsSubstringOnIndex(tag.MdClosingTag, i)) continue;
-                var tagToken = new TagToken(tag) { Position = i };
-                if (markdownRules.Rules.TryGetValue(tagToken.Tag.GetType(), out var rule))
-                    if (rule.IsTag != null && !rule.IsTag(tagToken, content))
-                        continue;
-
-                tagTokens.Add(new TagToken(tag) { Position = i });
+                tagTokens.Add(tagToken);
                 i += tag.MdClosingTag.Length - 1;
                 break;
             }
