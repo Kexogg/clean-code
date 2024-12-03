@@ -24,7 +24,7 @@ public class MarkdownRules
         {
             IsValid = (tagToken, content, isClosingTag, orderedTags) =>
             {
-                return !IsTagInWordWithDigits(tagToken, content) && 
+                return !IsTagInWordWithDigits(tagToken, content) &&
                        !IsStartOrEndWhitespace(tagToken, content, isClosingTag) &&
                        !IsEmptyContent(tagToken, content, orderedTags) &&
                        !IsTagBorderInWord(tagToken, content, orderedTags);
@@ -41,6 +41,8 @@ public class MarkdownRules
             if (openingTag.Tag.Matches(closingTag.Tag))
             {
                 var contentLength = closingTag.Position - (openingTag.Position + openingTag.Tag.MdTag.Length);
+                if (contentLength <= 0)
+                    Console.WriteLine($"Invalid tag: {openingTag.Tag.MdTag.GetType()} at {openingTag.Position} (empty content)");
                 return contentLength <= 0;
             }
         }
@@ -48,7 +50,7 @@ public class MarkdownRules
         return false;
     }
 
-    
+
     private static bool IsStartOrEndWhitespace(TagToken tagToken, string content, bool isClosingTag)
     {
         var pos = tagToken.Position;
@@ -58,7 +60,10 @@ public class MarkdownRules
         var charBefore = pos > 0 ? content[pos - 1] : '\0';
         var charAfter = tagEnd + 1 < content.Length ? content[tagEnd + 1] : '\0';
 
-        return char.IsWhiteSpace(isClosingTag ? charBefore : charAfter);
+        var invalid = char.IsWhiteSpace(isClosingTag ? charBefore : charAfter);
+        if (invalid)
+            Console.WriteLine($"Invalid tag: {tagToken.Tag.GetType()} at {tagToken.Position} (start or end whitespace)");
+        return invalid;
     }
 
     private static bool IsTagBorderInWord(TagToken tag, string content, List<TagToken> orderedTags)
@@ -77,31 +82,12 @@ public class MarkdownRules
             return false;
 
 
-        var i = tagEnd + 1;
-        while (content.Length > i && !char.IsWhiteSpace(content[i]))
-        {
-            if (content.ContainsSubstringOnIndex(tag.Tag.MdClosingTag, i))
-            {
-                return false;
-            }
-
-            i++;
-        }
-
-        i = tag.Position - 1;
-        while (i > 0 && !char.IsWhiteSpace(content[i]))
-        {
-            if (content.ContainsSubstringOnIndex(tag.Tag.MdTag, i))
-            {
-                return false;
-            }
-
-            i--;
-        }
-
-        return true;
+        var found = FindInAdjacentWord(tag, content, (i, s) => s.ContainsSubstringOnIndex(isClosing ? tag.Tag.MdClosingTag : tag.Tag.MdTag, i));
+        if (!found)
+            Console.WriteLine($"Invalid tag: {tag.Tag.MdTag.GetType()} at {tag.Position} (tag border in word)");
+        return !found;
     }
-    
+
     private static bool IsTagInWordWithDigits(TagToken tagToken, string content)
     {
         var isClosing = content.ContainsSubstringOnIndex(tagToken.Tag.MdClosingTag, tagToken.Position);
@@ -114,29 +100,34 @@ public class MarkdownRules
         if (tagToken.Position == 0 || char.IsWhiteSpace(content[tagToken.Position - 1]))
             return false;
 
+        var found = FindInAdjacentWord(tagToken, content, (i, s) => char.IsDigit(s[i]));
+        if (found)
+            Console.WriteLine($"Invalid tag: {tagToken.Tag.MdTag.GetType()} at {tagToken.Position} (word with digits)");
+        return found;
+    }
 
-        var i = tagEnd + 1;
-        while (content.Length > i && !char.IsWhiteSpace(content[i]))
+    private static bool FindInAdjacentWord(TagToken tagToken, string content, Func<int, string, bool> predicate)
+    {
+        var isClosing = content.ContainsSubstringOnIndex(tagToken.Tag.MdClosingTag, tagToken.Position);
+        var tagLength = (isClosing ? tagToken.Tag.MdClosingTag : tagToken.Tag.MdTag).Length;
+        var tagEnd = tagToken.Position + tagLength - 1;
+
+        // Scan forward
+        for (var i = tagEnd + 1; i < content.Length && !char.IsWhiteSpace(content[i]); i++)
         {
-            if (char.IsDigit(content[i]))
+            if (predicate(i, content))
             {
                 return true;
             }
-
-            i++;
         }
-
-        i = tagToken.Position - 1;
-        while (i > 0 && !char.IsWhiteSpace(content[i]))
+        // Scan backward
+        for (var i = tagToken.Position - 1; i >= 0 && !char.IsWhiteSpace(content[i]); i--)
         {
-            if (char.IsDigit(content[i]))
+            if (predicate(i, content))
             {
                 return true;
             }
-
-            i--;
         }
-
         return false;
     }
 }
