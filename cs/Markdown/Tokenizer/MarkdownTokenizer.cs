@@ -35,7 +35,7 @@ public class MarkdownTokenizer : ITokenizer
         content = RemoveEscapeCharacters(content, escapePositions, tagLines);
 
         var cleanTags = tagLines.SelectMany(t => t).ToList();
-        var tokenTree = BuildTokenTree(cleanTags, content);
+        var tokenTree = MarkdownTokenTreeBuilder.BuildTokenTree(cleanTags, content);
 
         tokens.AddRange(tokenTree);
         return tokenTree;
@@ -45,24 +45,7 @@ public class MarkdownTokenizer : ITokenizer
     {
         return tokens.ToList();
     }
-
-    private List<int> GetEscapePositions(string content)
-    {
-        var escapePositions = new List<int>();
-
-        for (var i = 0; i < content.Length; i++)
-        {
-            if (content[i] != '\\') continue;
-            if (i + 1 >= content.Length || (content[i + 1] != '\\' && !tags.Any(tag =>
-                    content.ContainsSubstringOnIndex(tag.MdTag, i + 1) ||
-                    (!tag.SelfClosing && content.ContainsSubstringOnIndex(tag.MdClosingTag, i + 1))))) continue;
-            escapePositions.Add(i);
-            i++;
-        }
-
-        return escapePositions;
-    }
-
+    
     private List<List<TagToken>> IdentifyTags(string content)
     {
         var lines = new List<List<TagToken>>();
@@ -102,99 +85,24 @@ public class MarkdownTokenizer : ITokenizer
 
         return lines;
     }
-
-    private static List<IToken> BuildTokenTree(List<TagToken> tagTokens, string content)
+    
+    private List<int> GetEscapePositions(string content)
     {
-        var tree = new List<IToken>();
-        var tagStack = new Stack<TagToken>();
-        var lastTagEnd = 0;
+        var escapePositions = new List<int>();
 
-        if (tagTokens.Count == 0)
+        for (var i = 0; i < content.Length; i++)
         {
-            tree.Add(new TextToken(content));
-            return tree;
+            if (content[i] != '\\') continue;
+            if (i + 1 >= content.Length || (content[i + 1] != '\\' && !tags.Any(tag =>
+                    content.ContainsSubstringOnIndex(tag.MdTag, i + 1) ||
+                    (!tag.SelfClosing && content.ContainsSubstringOnIndex(tag.MdClosingTag, i + 1))))) continue;
+            escapePositions.Add(i);
+            i++;
         }
 
-        foreach (var tag in tagTokens)
-            //If tag is first in the content
-            if (tagStack.Count == 0)
-            {
-                if (tag.Position > lastTagEnd)
-                {
-                    var textToken = new TextToken(content.Substring(lastTagEnd, tag.Position - lastTagEnd));
-                    tree.Add(textToken);
-                }
-
-                lastTagEnd = tag.Position + tag.Tag.MdTag.Length;
-
-                if (tag.Tag.SelfClosing)
-                {
-                    tree.Add(tag);
-                }
-                else
-                {
-                    tagStack.Push(tag);
-                }
-            }
-            //If tag is self-closing
-            else if (tag.Tag.SelfClosing)
-            {
-                if (tag.Position > lastTagEnd)
-                {
-                    var textToken = new TextToken(content.Substring(lastTagEnd, tag.Position - lastTagEnd));
-                    tagStack.Peek().Children.Add(textToken);
-                }
-                tagStack.Peek().Children.Add(tag);
-                lastTagEnd = tag.Position + tag.Tag.MdTag.Length;
-            }
-            //If tag is closing
-            else if (tagStack.Peek().Tag.GetType() == tag.Tag.GetType())
-            {
-                var currentTag = tagStack.Pop();
-                //handle image
-                if (currentTag.Tag is ImageTag imageTag)
-                {
-                    var imageToken = new TagToken(imageTag)
-                    {
-                        Position = currentTag.Position,
-                        Attributes =
-                            ImageTag.GetHtmlRenderAttributes(content.Substring(lastTagEnd - 2,
-                                tag.Position - lastTagEnd + 2))
-                    };
-                    tree.Add(imageToken);
-                    lastTagEnd = tag.Position + tag.Tag.MdClosingTag.Length;
-                    continue;
-                }
-
-                var textToken = new TextToken(content.Substring(lastTagEnd,
-                    tag.Position - lastTagEnd));
-
-
-                currentTag.Children.Add(textToken);
-                if (tagStack.Count == 0)
-                    tree.Add(currentTag);
-                else
-                    tagStack.Peek().Children.Add(currentTag);
-
-                var offset = tag.Tag.SelfClosing ? tag.Tag.MdTag.Length : tag.Tag.MdClosingTag.Length;
-                lastTagEnd = tag.Position + offset;
-            }
-            else
-            {
-                var lastTagInStack = tagStack.Peek();
-
-                var length = tag.Position - lastTagInStack.Position - lastTagInStack.Tag.MdTag.Length;
-                if (length > 0)
-                    lastTagInStack.Children.Add(new TextToken(
-                        content.Substring(lastTagInStack.Position + lastTagInStack.Tag.MdTag.Length, length)));
-                tagStack.Push(tag);
-                lastTagEnd = tag.Position + tag.Tag.MdTag.Length;
-            }
-
-        if (lastTagEnd < content.Length)
-            tree.Add(new TextToken(content[lastTagEnd..]));
-        return tree;
+        return escapePositions;
     }
+
     
     private static string RemoveEscapeCharacters(string content, List<int> escapePositions,
         List<List<TagToken>> identifiedTags)

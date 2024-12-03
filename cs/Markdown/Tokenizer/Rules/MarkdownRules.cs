@@ -11,11 +11,13 @@ public class MarkdownRules
     public Dictionary<Type, Rule> Rules = new()
     {
         [typeof(HeaderTag)] = new Rule
-            {
-                IsTag = (tagToken, content) => 
-                    (content.ContainsSubstringOnIndex(tagToken.Tag.MdClosingTag, tagToken.Position) && content[..tagToken.Position].LastIndexOf('#') > content[..tagToken.Position].LastIndexOf('\n')) ||
-                    (content.ContainsSubstringOnIndex(tagToken.Tag.MdTag, tagToken.Position) && (tagToken.Position == 0 || content[tagToken.Position - 1] == '\n')),
-            },
+        {
+            IsTag = (tagToken, content) =>
+                (content.ContainsSubstringOnIndex(tagToken.Tag.MdClosingTag, tagToken.Position)
+                 && content[..tagToken.Position].LastIndexOf('#') > content[..tagToken.Position].LastIndexOf('\n')) ||
+                (content.ContainsSubstringOnIndex(tagToken.Tag.MdTag, tagToken.Position)
+                 && (tagToken.Position == 0 || content[tagToken.Position - 1] == '\n')),
+        },
         [typeof(CursiveTag)] = new Rule
         {
             IsValid = (tagToken, content, isClosingTag, orderedTags) =>
@@ -48,7 +50,8 @@ public class MarkdownRules
             {
                 var contentLength = closingTag.Position - (openingTag.Position + openingTag.Tag.MdTag.Length);
                 if (contentLength <= 0)
-                    Console.WriteLine($"Invalid tag: {openingTag.Tag.MdTag.GetType()} at {openingTag.Position} (empty content)");
+                    Console.WriteLine(
+                        $"Invalid tag: {openingTag.Tag.MdTag.GetType()} at {openingTag.Position} (empty content)");
                 return contentLength <= 0;
             }
         }
@@ -68,7 +71,8 @@ public class MarkdownRules
 
         var invalid = char.IsWhiteSpace(isClosingTag ? charBefore : charAfter);
         if (invalid)
-            Console.WriteLine($"Invalid tag: {tagToken.Tag.GetType()} at {tagToken.Position} (start or end whitespace)");
+            Console.WriteLine(
+                $"Invalid tag: {tagToken.Tag.GetType()} at {tagToken.Position} (start or end whitespace)");
         return invalid;
     }
 
@@ -88,7 +92,8 @@ public class MarkdownRules
             return false;
 
 
-        var found = FindInAdjacentWord(tag, content, (i, s) => s.ContainsSubstringOnIndex(isClosing ? tag.Tag.MdClosingTag : tag.Tag.MdTag, i));
+        var found = FindInAdjacentWord(tag, content,
+            (i, s) => s.ContainsSubstringOnIndex(isClosing ? tag.Tag.MdClosingTag : tag.Tag.MdTag, i));
         if (!found)
             Console.WriteLine($"Invalid tag: {tag.Tag.GetType()} at {tag.Position} (tag border in word)");
         return !found;
@@ -126,6 +131,7 @@ public class MarkdownRules
                 return true;
             }
         }
+
         // Scan backward
         for (var i = tagToken.Position - 1; i >= 0 && !char.IsWhiteSpace(content[i]); i--)
         {
@@ -134,6 +140,7 @@ public class MarkdownRules
                 return true;
             }
         }
+
         return false;
     }
 }
