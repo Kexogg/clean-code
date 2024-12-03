@@ -13,7 +13,11 @@ public class ImageTag : ITag
 
     public IReadOnlyCollection<ITag> DisallowedChildren => new List<ITag>() {new CursiveTag(), new HeaderTag(), new ImageTag(), new StrongTag()};
 
-    public bool SelfClosing { get; } = true;
+    public bool SelfClosing { get; } = false;
 
-    public static string GetHtmlRenderAttributes(string content) => throw new NotImplementedException();
+    public static Dictionary<string,string> GetHtmlRenderAttributes(string content) => new()
+    {
+        {"src", content.Split(']')[1].Split('(')[1]},
+        {"alt", content.Split(']')[0][2..]}
+    };
 }

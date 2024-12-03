@@ -77,7 +77,7 @@ namespace MarkdownTests
                 }
             };
             var result = renderer.Render(tokens);
-            result.Should().Be("<img src=\"img.jpg\" alt=\"Hello, Image!\" />");
+            result.Should().Be("<img src=\"img.jpg\" alt=\"Hello, Image!\"></img>");
         }
         
         [Test]

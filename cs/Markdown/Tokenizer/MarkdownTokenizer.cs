@@ -129,7 +129,20 @@ public class MarkdownTokenizer : ITokenizer
             else if (tagStack.Peek().Tag.GetType() == tag.Tag.GetType())
             {
                 var currentTag = tagStack.Pop();
-
+                //handle image
+                //TODO: move to rules
+                if (currentTag.Tag is ImageTag imageTag)
+                {
+                    var imageToken = new TagToken(imageTag)
+                    {
+                        Position = currentTag.Position,
+                        Attributes = ImageTag.GetHtmlRenderAttributes(content.Substring(lastTagEnd - 2, tag.Position - lastTagEnd + 2))
+                    };
+                    tree.Add(imageToken);
+                    lastTagEnd = tag.Position + tag.Tag.MdClosingTag.Length;
+                    continue;
+                }
+                
                 var textToken = new TextToken(content.Substring(lastTagEnd,
                     tag.Position - lastTagEnd));
 

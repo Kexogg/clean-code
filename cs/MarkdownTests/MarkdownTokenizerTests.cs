@@ -246,11 +246,10 @@ namespace MarkdownTests
         {
             var tokens = tokenizer.Tokenize("![alt](image.jpg)");
 
-            //TODO: review link storage
             tokens.Should().HaveCount(1);
             tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<ImageTag>();
-            tokens[0].Children![0].TextContent.Should().Be("alt");
-            tokens[0].Children![1].TextContent.Should().Be("image.jpg");
+            ((TagToken)tokens[0]).Attributes["src"].Should().Be("image.jpg");
+            ((TagToken)tokens[0]).Attributes["alt"].Should().Be("alt");
         }
 
         private static void DrawTokenTree(IToken token, string indent)
