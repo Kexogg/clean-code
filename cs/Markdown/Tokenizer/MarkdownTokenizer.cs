@@ -184,6 +184,8 @@ public class MarkdownTokenizer : ITokenizer
 
 
             var tagType = currentTag.Tag.GetType();
+            
+            //Check if tag is valid
             if (markdownRules.Rules.TryGetValue(tagType, out var rule))
             {
                 if (rule.IsValid != null && !rule.IsValid(currentTag, content, isClosingTag, orderedTags))
@@ -193,8 +195,10 @@ public class MarkdownTokenizer : ITokenizer
                 }
             }
 
-            if (tagStack.Count == 0 || !currentTag.Tag.Matches(tagStack.Peek().Tag))
+            //If tag is opening
+            if (tagStack.Count == 0 || !currentTag.Tag.Matches(tagStack.Peek().Tag) && !tagStack.Any(t => t.Tag.Matches(currentTag.Tag)))
             {
+                //Check if tag is disallowed by parent
                 if (tagStack.Count > 0 && tagStack.Peek().Tag.DisallowedChildren
                         .Any(t => t.GetType() == currentTag.Tag.GetType()))
                 {
@@ -206,9 +210,23 @@ public class MarkdownTokenizer : ITokenizer
 
                 if (!currentTag.Tag.SelfClosing) tagStack.Push(currentTag);
             }
+            
+            //If tag is closing
             else
             {
                 var openingTag = tagStack.Pop();
+
+                //check if we have any children open
+                if (!openingTag.Tag.Matches(currentTag.Tag))
+                {
+                    Console.WriteLine($"Tags are intersecting! {openingTag.Tag.GetType()} at {openingTag.Position} and {currentTag.Tag.GetType()} at {currentTag.Position}");
+                    invalidTags.Add(openingTag);
+                    while (tagStack.Count > 0 && !tagStack.Peek().Tag.Matches(currentTag.Tag))
+                    {
+                        invalidTags.Add(tagStack.Pop());
+                    }
+                    invalidTags.Add(currentTag);
+                }
                 var contentLength = currentTag.Position - (openingTag.Position + openingTag.Tag.MdTag.Length);
                 if (contentLength <= 0)
                 {
