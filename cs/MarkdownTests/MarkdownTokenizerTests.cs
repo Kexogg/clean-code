@@ -175,7 +175,6 @@ namespace MarkdownTests
         }
 
         [Test]
-        //TODO: newline fix
         public void Tokenize_ShouldNotReturnTag_ForUnpairedTag_WithinOneLine()
         {
             var tokens = tokenizer.Tokenize("__unpaired_ tags\npaired __tag__");

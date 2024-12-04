@@ -87,9 +87,7 @@ public class MarkdownRules
             return false;
         //previous symbol
         var previousTag = orderedTags.LastOrDefault(t => t.Position < tag.Position);
-        //TODO: fix edge case
-        if (tag.Position == 0 || char.IsWhiteSpace(content[tag.Position - 1]) ||
-            previousTag?.Position + previousTag?.Tag.MdTag.Length == tag.Position)
+        if (tag.Position == 0 || previousTag?.Position + previousTag?.Tag.MdTag.Length == tag.Position)
             return false;
 
         //escape at the beginning of the word
@@ -97,9 +95,9 @@ public class MarkdownRules
         {
             if (content.IsEscaped(i))
                 continue;
-            if (i == 0 || char.IsWhiteSpace(content[i - 1]))
+            if (i == 0 || char.IsWhiteSpace(content[i]))
                 return false;
-            if (char.IsLetter(content[i - 1]))
+            if (char.IsLetter(content[i]))
                 break;
         }
 
