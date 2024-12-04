@@ -1,5 +1,6 @@
 using Markdown.Extensions;
 using Markdown.Tags;
+using Markdown.Tokenizer.Tokens;
 
 namespace Markdown.Tokenizer.Rules;
 

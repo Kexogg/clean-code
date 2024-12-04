@@ -1,7 +1,6 @@
 using Markdown.Tags;
-using Markdown.Tokenizer.Tokens;
 
-namespace Markdown.Tokenizer;
+namespace Markdown.Tokenizer.Tokens;
 
 /// <summary>
 /// Токен тега

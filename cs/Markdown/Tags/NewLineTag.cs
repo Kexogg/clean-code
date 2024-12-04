@@ -1,5 +1,8 @@
 namespace Markdown.Tags;
 
+/// <summary>
+/// Тег для переноса строки
+/// </summary>
 public class NewLineTag : ITag
 {
     public string MdTag { get; } = "\n";

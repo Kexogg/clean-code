@@ -1,5 +1,8 @@
 namespace Markdown.Tags;
 
+/// <summary>
+/// Тег для курсивного текста
+/// </summary>
 public class CursiveTag : ITag
 {
     public string MdTag { get; } = "_";

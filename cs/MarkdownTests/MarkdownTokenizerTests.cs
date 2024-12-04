@@ -101,7 +101,8 @@ namespace MarkdownTests
             tokens.Should().HaveCount(2);
             tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(@"\");
             tokens[1].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<CursiveTag>();
-            tokens[1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("escaped escape character");
+            tokens[1].Children![0].Should().BeOfType<TextToken>().Which.TextContent.Should()
+                .Be("escaped escape character");
         }
 
         [Test]
@@ -240,6 +241,16 @@ namespace MarkdownTests
                 .Be("Header with tag");
             tokens[0].Children![1].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(" and");
             tokens[1].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("newline");
+        }
+
+        [Test]
+        public void Tokenize_ShouldNotReturnTag_ForHeaderNotAtStartOfLine()
+        {
+            const string content = "word #header";
+            var tokens = tokenizer.Tokenize(content);
+
+            tokens.Should().HaveCount(1);
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be(content);
         }
 
         //Image

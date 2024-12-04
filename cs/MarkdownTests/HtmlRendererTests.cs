@@ -45,7 +45,7 @@ namespace MarkdownTests
             var result = renderer.Render(tokens);
             result.Should().Be("<strong>Hello, World!</strong>");
         }
-        
+
         [Test]
         public void Render_ShouldRenderNestedTagTokens()
         {
@@ -65,7 +65,7 @@ namespace MarkdownTests
             var result = renderer.Render(tokens);
             result.Should().Be("<strong><em>Hello, World!</em></strong>");
         }
-        
+
         [Test]
         public void Render_ShouldRenderTagTokenWithAttributes()
         {
@@ -79,11 +79,11 @@ namespace MarkdownTests
             var result = renderer.Render(tokens);
             result.Should().Be("<img src=\"img.jpg\" alt=\"Hello, Image!\"></img>");
         }
-        
+
         [Test]
         public void Render_ShouldEscapeSpecialCharacters()
         {
-            var tokens = new List<IToken> { new TextToken(@"Hello, <div>World</div>, &!") };
+            var tokens = new List<IToken> { new TextToken("Hello, <div>World</div>, &!") };
             var result = renderer.Render(tokens);
             result.Should().Be("Hello, &lt;div&gt;World&lt;/div&gt;, &amp;!");
         }

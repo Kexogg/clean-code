@@ -59,16 +59,17 @@ public abstract class MarkdownTokenTreeBuilder
             //If tag is closing
             else if (tagStack.Peek().Tag.GetType() == tag.Tag.GetType())
             {
-                var currentTag = tagStack.Pop();
+                var tagToken = tagStack.Pop();
                 //handle image
-                if (currentTag.Tag is ImageTag imageTag)
+                if (tagToken.Tag is ImageTag imageTag)
                 {
                     var imageToken = new TagToken(imageTag)
                     {
-                        Position = currentTag.Position,
+                        Position = tagToken.Position,
                         Attributes =
-                            ImageTag.GetHtmlRenderAttributes(content.Substring(lastTagEnd - 2,
-                                tag.Position - lastTagEnd + 2))
+                            ImageTag.GetHtmlRenderAttributes(
+                                content.Substring(lastTagEnd - tagToken.Tag.MdTag.Length,
+                                tag.Position - lastTagEnd + tagToken.Tag.MdTag.Length))
                     };
                     tree.Add(imageToken);
                     lastTagEnd = tag.Position + tag.Tag.MdClosingTag.Length;
@@ -78,11 +79,11 @@ public abstract class MarkdownTokenTreeBuilder
                 var textToken = new TextToken(content.Substring(lastTagEnd,
                     tag.Position - lastTagEnd));
 
-                currentTag.Children.Add(textToken);
+                tagToken.Children.Add(textToken);
                 if (tagStack.Count == 0)
-                    tree.Add(currentTag);
+                    tree.Add(tagToken);
                 else
-                    tagStack.Peek().Children.Add(currentTag);
+                    tagStack.Peek().Children.Add(tagToken);
 
                 var offset = tag.Tag.SelfClosing ? tag.Tag.MdTag.Length : tag.Tag.MdClosingTag.Length;
                 lastTagEnd = tag.Position + offset;
