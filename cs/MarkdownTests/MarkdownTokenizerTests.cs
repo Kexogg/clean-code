@@ -48,9 +48,8 @@ namespace MarkdownTests
             var tokens = tokenizer.Tokenize("__strong text__");
 
             tokens.Should().HaveCount(1);
-            tokens[0].Should().BeOfType<TagToken>();
+            tokens[0].Should().BeOfType<TagToken>().Which.Tag.Should().BeOfType<StrongTag>();
             tokens[0].Children![0].TextContent.Should().Be("strong text");
-            ((TagToken)tokens[0]).Tag.Should().BeOfType<StrongTag>();
         }
 
         [Test]

@@ -3,27 +3,27 @@ using Markdown.Tokenizer.Tokens;
 
 namespace Markdown.Tokenizer;
 
-public abstract class MarkdownTokenTreeBuilder
+public static class MarkdownTokenTreeBuilder
 {
     /// <summary>
     /// Собирает дерево токенов, исходя из тегов в тексте
     /// </summary>
-    /// <param name="tagTokens">Список валидных тегов в тексте</param>
+    /// <param name="availableTokens">Список валидных тегов в тексте</param>
     /// <param name="content">Исходная строка</param>
     /// <returns>Дерево токенов</returns>
-    public static List<IToken> BuildTokenTree(List<TagToken> tagTokens, string content)
+    public static List<IToken> BuildTokenTree(List<TagToken> availableTokens, string content)
     {
         var tree = new List<IToken>();
         var tagStack = new Stack<TagToken>();
         var lastTagEnd = 0;
 
-        if (tagTokens.Count == 0)
+        if (availableTokens.Count == 0)
         {
             tree.Add(new TextToken(content));
             return tree;
         }
 
-        foreach (var tag in tagTokens)
+        foreach (var tag in availableTokens)
             //If tag is first in the content
             if (tagStack.Count == 0)
             {
@@ -69,7 +69,7 @@ public abstract class MarkdownTokenTreeBuilder
                         Attributes =
                             ImageTag.GetHtmlRenderAttributes(
                                 content.Substring(lastTagEnd - tagToken.Tag.MdTag.Length,
-                                tag.Position - lastTagEnd + tagToken.Tag.MdTag.Length))
+                                tag.Position - lastTagEnd + tagToken.Tag.MdTag.Length + 1))
                     };
                     tree.Add(imageToken);
                     lastTagEnd = tag.Position + tag.Tag.MdClosingTag.Length;

@@ -8,11 +8,10 @@ namespace Markdown.Markdown;
 /// </summary>
 public class Md : IMd
 {
-    private readonly ITokenizer tokenizer = new MarkdownTokenizer();
     private readonly IRenderer renderer = new HtmlRenderer();
     public string Render(string md)
     {
-        var tokens = tokenizer.Tokenize(md);
+        var tokens = new MarkdownTokenizer().Tokenize(md);
         return renderer.Render(tokens);
     }
 }

@@ -67,7 +67,7 @@ namespace MarkdownTests
         }
 
         [Test]
-        public void Render_ShouldRenderTagTokenWithAttributes()
+        public void Render_ShouldRenderImgTagToken()
         {
             var tokens = new List<IToken>
             {
