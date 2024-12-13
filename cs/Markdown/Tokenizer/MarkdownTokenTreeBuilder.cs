@@ -23,16 +23,16 @@ public static class MarkdownTokenTreeBuilder
             return tree;
         }
 
-        foreach (var tag in availableTokens)
+        foreach (var tagToken in availableTokens)
         {
             if (tagStack.Count == 0)
-                lastTagEnd = HandleFirstTag(tag, content, tree, tagStack, lastTagEnd);
-            else if (tag.Tag.SelfClosing)
-                lastTagEnd = HandleSelfClosingTag(tag, content, tagStack, lastTagEnd);
-            else if (tagStack.Peek().Tag.GetType() == tag.Tag.GetType())
-                lastTagEnd = HandleClosingTag(tag, content, tree, tagStack, lastTagEnd);
+                lastTagEnd = HandleFirstTag(tagToken, content, tree, tagStack, lastTagEnd);
+            else if (tagToken.Tag.SelfClosing)
+                lastTagEnd = HandleSelfClosingTag(tagToken, content, tagStack, lastTagEnd);
+            else if (tagToken.Tag.Matches(tagStack.Peek().Tag))
+                lastTagEnd = HandleClosingTag(tagToken, content, tree, tagStack, lastTagEnd);
             else
-                lastTagEnd = HandleNestedTag(tag, content, tagStack);
+                lastTagEnd = HandleNestedTag(tagToken, content, tagStack, lastTagEnd);
         }
 
         if (lastTagEnd < content.Length)
@@ -41,7 +41,8 @@ public static class MarkdownTokenTreeBuilder
         return tree;
     }
 
-    private static int HandleFirstTag(TagToken tag, string content, List<IToken> tree, Stack<TagToken> tagStack, int lastTagEnd)
+    private static int HandleFirstTag(TagToken tag, string content, List<IToken> tree, Stack<TagToken> tagStack,
+        int lastTagEnd)
     {
         if (tag.Position > lastTagEnd)
         {
@@ -70,28 +71,31 @@ public static class MarkdownTokenTreeBuilder
         return tag.Position + tag.Tag.MdTag.Length;
     }
 
-    private static int HandleClosingTag(TagToken tag, string content, List<IToken> tree, Stack<TagToken> tagStack, int lastTagEnd)
+    private static int HandleClosingTag(TagToken tag, string content, List<IToken> tree, Stack<TagToken> tagStack,
+        int lastTagEnd)
     {
         var tagToken = tagStack.Pop();
-        //handle image
+
+        if (tag.Position > lastTagEnd)
+        {
+            var textToken = new TextToken(content.Substring(lastTagEnd, tag.Position - lastTagEnd));
+            tagToken.Children.Add(textToken);
+        }
+
+        // Handle image tag
         if (tagToken.Tag is ImageTag imageTag)
         {
             var imageToken = new TagToken(imageTag)
             {
                 Position = tagToken.Position,
-                Attributes =
-                    ImageTag.GetHtmlTadAttributes(
-                        content.Substring(lastTagEnd - tagToken.Tag.MdTag.Length,
+                Attributes = ImageTag.GetHtmlTadAttributes(
+                    content.Substring(lastTagEnd - tagToken.Tag.MdTag.Length,
                         tag.Position - lastTagEnd + tagToken.Tag.MdTag.Length + 1))
             };
             tree.Add(imageToken);
             return tag.Position + tag.Tag.MdClosingTag.Length;
         }
 
-        var textToken = new TextToken(content.Substring(lastTagEnd,
-            tag.Position - lastTagEnd));
-
-        tagToken.Children.Add(textToken);
         if (tagStack.Count == 0)
             tree.Add(tagToken);
         else
@@ -101,14 +105,16 @@ public static class MarkdownTokenTreeBuilder
         return tag.Position + offset;
     }
 
-    private static int HandleNestedTag(TagToken tag, string content, Stack<TagToken> tagStack)
+    private static int HandleNestedTag(TagToken tag, string content, Stack<TagToken> tagStack, int lastTagEnd)
     {
         var lastTagInStack = tagStack.Peek();
 
-        var length = tag.Position - lastTagInStack.Position - lastTagInStack.Tag.MdTag.Length;
+        var length = tag.Position - lastTagEnd;
         if (length > 0)
-            lastTagInStack.Children.Add(new TextToken(
-                content.Substring(lastTagInStack.Position + lastTagInStack.Tag.MdTag.Length, length)));
+        {
+            var text = content.Substring(lastTagEnd, length);
+            lastTagInStack.Children.Add(new TextToken(text));
+        }
         tagStack.Push(tag);
         return tag.Position + tag.Tag.MdTag.Length;
     }
