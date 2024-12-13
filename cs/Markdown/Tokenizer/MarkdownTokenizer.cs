@@ -53,10 +53,13 @@ public class MarkdownTokenizer : ITokenizer
         for (var i = 0; i < content.Length; i++)
             foreach (var tag in supportedTags)
             {
+                // Try to get rule for tag
                 if (markdownRules.TagRules.TryGetValue(tag.GetType(), out var rule))
+                    // If rule determines that tag is not a tag, skip it
                     if (rule.IsTag != null && !rule.IsTag(tag, content, i))
                         continue;
 
+                // If tag is not self-closing, and it's not a closing tag
                 if (content.ContainsSubstringOnIndex(tag.MdTag, i) && !content.IsEscaped(i))
                 {
                     if (tag is NewLineTag)
@@ -73,9 +76,17 @@ public class MarkdownTokenizer : ITokenizer
                     break;
                 }
 
+                // If tag is self-closing or closing tag
                 if (tag.SelfClosing || !content.ContainsSubstringOnIndex(tag.MdClosingTag, i) || content.IsEscaped(i))
                     continue;
                 tagTokens.Add(new TagToken(tag) { Position = i });
+                // If tag is closing tag for header, create new line
+                if (tag is HeaderTag)
+                {
+                    lines.Add(tagTokens);
+                    tagTokens = new List<TagToken>();
+                    break;
+                }
                 i += tag.MdClosingTag.Length - 1;
                 break;
             }
