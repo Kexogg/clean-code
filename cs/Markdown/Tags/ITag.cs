@@ -34,9 +34,14 @@ public interface ITag
     /// <summary>
     /// Получить атрибуты для рендера в HTML
     /// </summary>
-    /// <param name="content">Содержание тега</param>
+    /// <param name="tagContents">Содержание тега</param>
     /// <returns>Строка с атрибутами для вставки в тег</returns>
-    static string? GetHtmlRenderAttributes(string content) => null;
+    static Dictionary<string, string> GetHtmlTadAttributes(string tagContents) => new Dictionary<string, string>() { };
 
-    bool Matches(ITag tag) => this.GetType() == tag.GetType();
+    /// <summary>
+    /// Проверка, что тег соответствует переданному тегу
+    /// </summary>
+    /// <param name="tag">Тег для сравнения</param>
+    /// <returns></returns>
+    bool Matches(ITag tag);
 }

@@ -9,16 +9,38 @@ namespace Markdown.Tokenizer.Rules;
 /// </summary>
 public class MarkdownRules
 {
-    public Dictionary<Type, Rule> Rules = new()
+    public readonly Dictionary<Type, Rule> TagRules = new()
     {
         [typeof(HeaderTag)] = new Rule
         {
-            IsTag = (tagToken, content) =>
-                (content.ContainsSubstringOnIndex(tagToken.Tag.MdClosingTag, tagToken.Position)
-                 && content[..tagToken.Position].LastIndexOf('#') > content[..tagToken.Position].LastIndexOf('\n')) ||
-                (content.ContainsSubstringOnIndex(tagToken.Tag.MdTag, tagToken.Position)
-                 && (tagToken.Position == 0 || content[tagToken.Position - 1] == '\n')),
+            IsTag = (tag, content, position) =>
+            {
+                var isClosingTag = content.ContainsSubstringOnIndex(tag.MdClosingTag, position);
+                var isOpeningTag = content.ContainsSubstringOnIndex(tag.MdTag, position);
+
+                if (isClosingTag)
+                {
+                    for (var i = position - 1; i >= 0; i--)
+                    {
+                        if (content[i] == '#')
+                            return true;
+                        if (content[i] == '\n')
+                            break;
+                    }
+                }
+
+                if (isOpeningTag)
+                {
+                    return position == 0 || content[position - 1] == '\n';
+                }
+
+                return false;
+            },
         },
+    };
+
+    public readonly Dictionary<Type, Rule> Rules = new()
+    {
         [typeof(CursiveTag)] = new Rule
         {
             IsValid = (tagToken, content, isClosingTag, orderedTags) =>

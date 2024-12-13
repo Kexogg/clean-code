@@ -9,4 +9,9 @@ public class HeaderTag : ITag
     public string MdClosingTag { get; } = "\n";
     public string HtmlTag { get; } = "h1";
     public IReadOnlyCollection<ITag> DisallowedChildren { get; } = new List<ITag>();
+
+    public bool Matches(ITag tag)
+    {
+        return tag is HeaderTag;
+    }
 }

@@ -14,7 +14,7 @@ public class MarkdownTokenizer : ITokenizer
 {
     private readonly MarkdownRules markdownRules = new();
 
-    private readonly List<ITag> tags = new()
+    private readonly List<ITag> supportedTags = new()
     {
         new StrongTag(),
         new CursiveTag(),
@@ -51,12 +51,10 @@ public class MarkdownTokenizer : ITokenizer
         var lines = new List<List<TagToken>>();
         var tagTokens = new List<TagToken>();
         for (var i = 0; i < content.Length; i++)
-            foreach (var tag in tags)
+            foreach (var tag in supportedTags)
             {
-                var tagToken = new TagToken(tag) { Position = i };
-
-                if (markdownRules.Rules.TryGetValue(tagToken.Tag.GetType(), out var rule))
-                    if (rule.IsTag != null && !rule.IsTag(tagToken, content))
+                if (markdownRules.TagRules.TryGetValue(tag.GetType(), out var rule))
+                    if (rule.IsTag != null && !rule.IsTag(tag, content, i))
                         continue;
 
                 if (content.ContainsSubstringOnIndex(tag.MdTag, i) && !content.IsEscaped(i))
@@ -64,20 +62,20 @@ public class MarkdownTokenizer : ITokenizer
                     if (tag is NewLineTag)
                     {
                         if (tagTokens.FirstOrDefault()?.Tag is not HeaderTag)
-                            tagTokens.Add(tagToken);
+                            tagTokens.Add(new TagToken(tag) { Position = i });
                         lines.Add(tagTokens);
                         tagTokens = new List<TagToken>();
                         break;
                     }
 
-                    tagTokens.Add(tagToken);
+                    tagTokens.Add(new TagToken(tag) { Position = i });
                     i += tag.MdTag.Length - 1;
                     break;
                 }
 
                 if (tag.SelfClosing || !content.ContainsSubstringOnIndex(tag.MdClosingTag, i) || content.IsEscaped(i))
                     continue;
-                tagTokens.Add(tagToken);
+                tagTokens.Add(new TagToken(tag) { Position = i });
                 i += tag.MdClosingTag.Length - 1;
                 break;
             }
@@ -94,7 +92,7 @@ public class MarkdownTokenizer : ITokenizer
         for (var i = 0; i < content.Length; i++)
         {
             if (content[i] != '\\') continue;
-            if (i + 1 >= content.Length || (content[i + 1] != '\\' && !tags.Any(tag =>
+            if (i + 1 >= content.Length || (content[i + 1] != '\\' && !supportedTags.Any(tag =>
                     content.ContainsSubstringOnIndex(tag.MdTag, i + 1) ||
                     (!tag.SelfClosing && content.ContainsSubstringOnIndex(tag.MdClosingTag, i + 1))))) continue;
             escapePositions.Add(i);
@@ -173,7 +171,7 @@ public class MarkdownTokenizer : ITokenizer
 
     private static bool IsOpeningTag(Stack<TagToken> tagStack, TagToken tagToken)
     {
-        return tagStack.Count == 0 || (!tagToken.Tag.Matches(tagStack.Peek().Tag) && 
+        return tagStack.Count == 0 || (!tagToken.Tag.Matches(tagStack.Peek().Tag) &&
                                        !tagStack.Any(t => t.Tag.Matches(tagToken.Tag)));
     }
 

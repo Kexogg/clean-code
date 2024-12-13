@@ -1,3 +1,4 @@
+using Markdown.Tags;
 using Markdown.Tokenizer.Tokens;
 
 namespace Markdown.Tokenizer.Rules;
@@ -8,5 +9,5 @@ namespace Markdown.Tokenizer.Rules;
 public class Rule : IRule
 {
     public Func<TagToken, string, bool, List<TagToken>, bool>? IsValid { get; init; }
-    public Func<TagToken, string, bool>? IsTag { get; init; }
+    public Func<ITag, string, int, bool>? IsTag { get; init; }
 }

@@ -12,4 +12,9 @@ public class StrongTag : ITag
     public string HtmlTag { get; } = "strong";
 
     public IReadOnlyCollection<ITag> DisallowedChildren { get; } = new List<ITag>();
+
+    public bool Matches(ITag tag)
+    {
+        return tag is StrongTag;
+    }
 }

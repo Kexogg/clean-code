@@ -67,7 +67,7 @@ public static class MarkdownTokenTreeBuilder
                     {
                         Position = tagToken.Position,
                         Attributes =
-                            ImageTag.GetHtmlRenderAttributes(
+                            ImageTag.GetHtmlTadAttributes(
                                 content.Substring(lastTagEnd - tagToken.Tag.MdTag.Length,
                                 tag.Position - lastTagEnd + tagToken.Tag.MdTag.Length + 1))
                     };
