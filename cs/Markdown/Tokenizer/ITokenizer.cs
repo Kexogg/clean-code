@@ -8,6 +8,4 @@ namespace Markdown.Tokenizer;
 public interface ITokenizer
 {
     public List<IToken> Tokenize(string content);
-    
-    public List<IToken> GetTokens();
 }

@@ -23,7 +23,6 @@ public class MarkdownTokenizer : ITokenizer
         new NewLineTag()
     };
 
-    private readonly List<IToken> tokens = new();
 
     public List<IToken> Tokenize(string content)
     {
@@ -37,13 +36,7 @@ public class MarkdownTokenizer : ITokenizer
         var cleanTagTokens = tagLines.SelectMany(t => t).ToList();
         var tokenTree = MarkdownTokenTreeBuilder.BuildTokenTree(cleanTagTokens, escapedContent);
 
-        tokens.AddRange(tokenTree);
         return tokenTree;
-    }
-
-    public List<IToken> GetTokens()
-    {
-        return tokens.ToList();
     }
 
     private List<List<TagToken>> IdentifyTags(string content)
