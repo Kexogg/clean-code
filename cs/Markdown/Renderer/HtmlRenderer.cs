@@ -31,7 +31,7 @@ public class HtmlRenderer : IRenderer
         };
     }
 
-    private string? RenderTagToken(TagToken tagToken)
+    private string RenderTagToken(TagToken tagToken)
     {
         var sb = new StringBuilder();
         sb.Append($"<{tagToken.Tag.HtmlTag}");

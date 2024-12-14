@@ -131,14 +131,16 @@ public class MarkdownTokenizer : ITokenizer
     {
         var invalidTags = new HashSet<TagToken>();
         var tagStack = new Stack<TagToken>();
-        var orderedTags = foundTags.OrderBy(t => t.Position).ToList();
 
-        foreach (var tagToken in orderedTags)
+        var overlaps = FindOverlappingTags(foundTags);
+        foundTags.RemoveAll(t => overlaps.Contains(t));
+
+        foreach (var tagToken in foundTags)
         {
             var tag = tagToken.Tag;
             var isClosingTag = IsClosingTag(tag, tagToken.Position, content, tagStack);
 
-            if (IsTagInvalid(tagToken, content, isClosingTag, orderedTags))
+            if (IsTagInvalid(tagToken, content, isClosingTag, foundTags))
             {
                 invalidTags.Add(tagToken);
                 continue;
@@ -165,6 +167,47 @@ public class MarkdownTokenizer : ITokenizer
             invalidTags.Add(tagStack.Pop());
 
         foundTags.RemoveAll(t => invalidTags.Contains(t));
+    }
+
+    private static HashSet<TagToken> FindOverlappingTags(List<TagToken> tagTokens)
+    {
+        var overlaps = new HashSet<ITag>();
+        var tagStack = new Stack<TagToken>();
+        var invalidTags = new HashSet<TagToken>();
+
+        foreach (var tagToken in tagTokens)
+        {
+            if (overlaps.Contains(tagToken.Tag))
+            {
+                invalidTags.Add(tagToken);
+                overlaps.Remove(tagToken.Tag);
+                continue;
+            }
+            if (IsOpeningTag(tagStack, tagToken))
+                tagStack.Push(tagToken);
+            else
+            {
+                if (tagStack.Count > 0 && tagStack.Peek().Tag.Matches(tagToken.Tag))
+                {
+                    tagStack.Pop();
+                    continue;
+                }
+                invalidTags.Add(tagToken);
+                overlaps.Add(tagToken.Tag);
+                TagToken token;
+                while (tagStack.Count > 0 && !tagStack.Peek().Tag.Matches(tagToken.Tag))
+                {
+                    token = tagStack.Pop();
+                    invalidTags.Add(token);
+                    overlaps.Add(token.Tag);
+                }
+                token = tagStack.Pop();
+                invalidTags.Add(token);
+                overlaps.Add(token.Tag);
+            }
+        }
+
+        return invalidTags;
     }
 
     private static bool IsClosingTag(ITag tag, int position, string content, Stack<TagToken> tagStack)
@@ -195,14 +238,6 @@ public class MarkdownTokenizer : ITokenizer
     private static void HandleClosingTag(Stack<TagToken> tagStack, TagToken tagToken, HashSet<TagToken> invalidTags)
     {
         var openingTag = tagStack.Pop();
-
-        if (!openingTag.Tag.Matches(tagToken.Tag))
-        {
-            invalidTags.Add(openingTag);
-            while (tagStack.Count > 0 && !tagStack.Peek().Tag.Matches(tagToken.Tag)) invalidTags.Add(tagStack.Pop());
-
-            invalidTags.Add(tagToken);
-        }
 
         var contentLength = tagToken.Position - (openingTag.Position + openingTag.Tag.MdTag.Length);
         if (contentLength > 0) return;
