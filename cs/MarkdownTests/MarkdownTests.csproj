@@ -26,7 +26,17 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Update="TestCases/**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\Markdown\Markdown.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="TestCases\" />
     </ItemGroup>
 
 </Project>

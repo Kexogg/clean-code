@@ -209,10 +209,10 @@ namespace MarkdownTests
         [Test]
         public void Tokenize_ShouldNotReturnTags_ForIntersectingTags()
         {
-            var tokens = tokenizer.Tokenize("__text with _intersecting__ tags_");
+            var tokens = tokenizer.Tokenize("__text_ with intersecting__ tags_");
 
             tokens.Should().HaveCount(1);
-            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("__text with _intersecting__ tags_");
+            tokens[0].Should().BeOfType<TextToken>().Which.TextContent.Should().Be("__text_ with intersecting__ tags_");
         }
 
         [Test]
