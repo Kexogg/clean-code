@@ -4,9 +4,13 @@ namespace Markdown.Tokenizer.Tokens;
 /// Текстовый токен. Содержит чистый текст
 /// </summary>
 /// <param name="content">Текст</param>
-public class TextToken(string content) : IToken
+public class TextToken : IToken
 {
-    public string TextContent { get; } = content;
+    public TextToken(string content)
+    {
+        TextContent = content;
+    }
+    public string TextContent { get; init; }
 
     public List<IToken>? Children => null;
     

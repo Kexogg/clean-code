@@ -17,7 +17,7 @@ public class MarkdownTokenizerPerformanceTests
     [Test]
     public void Tokenize_HeaderPerformanceTest()
     {
-        TokenizePerformanceTest("TestCases/MarkdownTokenizer/" + TestContext.CurrentContext.Test.MethodName + ".md", 200);
+        TokenizePerformanceTest("TestCases/MarkdownTokenizer/" + TestContext.CurrentContext.Test.MethodName + ".md", 300);
     }
 
     [Test]

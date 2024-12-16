@@ -10,7 +10,7 @@ namespace MarkdownTests
     public class MarkdownTokenizerTests
     {
         private MarkdownTokenizer tokenizer;
-        private List<IToken> tokens;
+        private List<IToken> tokens = new();
 
         [SetUp]
         public void SetUp()
